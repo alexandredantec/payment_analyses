@@ -1,56 +1,143 @@
 ---
-title: Welcome to Evidence
+title: Q1/Q2 Chargeback Report - Globepay
 ---
 
-<Details title='How to edit this page'>
+## Scope
+- This is an overview of transactions processed using the Globepay API
+- The data has been processed in [dbt](https://github.com/alexandredantec/dbt_payment_data)
+- for analysis, I chose to test [evidence.dev](https://evidence.dev/)
 
-  This page can be found in your project at `/pages/index.md`. Make a change to the markdown file and save it to see the change take effect in your browser.
-</Details>
 
-```sql categories
+## Question 1: What is the acceptance rate over time?
+- in order to answer this question, time granularity matters: 
+- weekly data offers the most balanced overview to observe variation
+
+- The acceptance rate is calculated by dividing the total number of accepted transactions by the overall number of transactions 
+- Open toggle below for SQL code:
+
+```sql acceptance_rate
+with base as (
   select
-      category
-  from needful_things.orders
-  group by category
+  transaction_week
+  ,count(*) as total
+  ,sum(case when transaction_state = 'ACCEPTED' then 1 else 0 end) as total_accepted
+  from datamodelingchallenge.transactions
+  group by 1 
+)
+
+select
+transaction_week
+,round(total_accepted/total, 3) as acceptance_rate 
+from base 
+order by 1 
 ```
+<LineChart
+    data={acceptance_rate}
+    title="Acceptance Rate by Week"
+    x=transaction_week
+    y=acceptance_rate
+/>
 
-<Dropdown data={categories} name=category value=category>
-    <DropdownOption value="%" valueLabel="All Categories"/>
-</Dropdown>
+- The acceptance rate remained somewhat stable, fluctuating between 0.8 and 0.6. It is difficult to identify any sort of seasonality. 
+- The variation by country is also remarkably stable (displayed by month to keep chart organized). 
 
-<Dropdown name=year>
-    <DropdownOption value=% valueLabel="All Years"/>
-    <DropdownOption value=2019/>
-    <DropdownOption value=2020/>
-    <DropdownOption value=2021/>
-</Dropdown>
+```sql acceptance_rate_by_country
+with base as (
+  select
+  transaction_month
+  ,transaction_country
+  ,count(*) as total
+  ,sum(case when transaction_state = 'ACCEPTED' then 1 else 0 end) as total_accepted
+  from datamodelingchallenge.transactions
+  group by 1,2 
+)
 
-```sql orders_by_category
+select
+transaction_month
+,transaction_country
+,round(total_accepted/total, 3) as acceptance_rate 
+from base 
+order by 1 
+```
+<LineChart
+    data={acceptance_rate_by_country}
+    title="Acceptance Rate by Country by Month"
+    x=transaction_month
+    y=acceptance_rate
+    series = transaction_country
+/>
+
+## Question 2: What are the countries where the amount of declined transactions went over $25M?
+- The chargeback rate is calculated by computing the total amount in USD for transactions where `is_chargeback is true` 
+- Open toggle below for SQL code:
+
+```sql chargebacks_by_country_usd
   select 
-      date_trunc('month', order_datetime) as month,
-      sum(sales) as sales_usd,
-      category
-  from needful_things.orders
-  where category like '${inputs.category.value}'
-  and date_part('year', order_datetime) like '${inputs.year.value}'
-  group by all
-  order by sales_usd desc
+      transaction_country
+      ,sum(case when is_chargeback then usd_amount else 0 end) as total_chargebacks
+  from datamodelingchallenge.transactions
+  group by 1 
 ```
 
 <BarChart
-    data={orders_by_category}
-    title="Sales by Month, {inputs.category.label}"
-    x=month
-    y=sales_usd
-    series=category
+    data={chargebacks_by_country_usd}
+    title="Chargebacks by Country"
+    x=transaction_country
+    y=total_chargebacks
+/>
+
+- There was no country where the total chargeback value exceeded 350K during the period of observation
+- Obtaining more data would be useful in order to see whether any country reached 25 Million USD in chargeback losses
+
+## Question 3. Which transactions are missing chargeback data?
+
+- The missing chargeback data can be identified by checking transactions where the column `is_chargeback` is null, i.e. it is neither `true` nor `false`
+- In the preliminary exploration, it was already shown that this will not be the case as there is a 1-1 relationship between chargebacks and transactions
+- Open toggle below for SQL code:
+
+```sql missing_chargebacks
+  select 
+      count(transaction_id) as missing_chargeback_total
+  from datamodelingchallenge.transactions
+  where is_chargeback is null
+```
+<BigValue 
+  data={missing_chargebacks} 
+  value=missing_chargeback_total
+/>
+
+- As expected, the total is 0 
+- To go further, we can look at the total number of chargebacks:
+
+```sql total_chargebacks
+  select 
+      count(transaction_id) as total_chargebacks
+  from datamodelingchallenge.transactions
+  where is_chargeback is true
+```
+
+<BigValue 
+  data={total_chargebacks} 
+  value=total_chargebacks
+/>
+
+- Let's now look at the total number of chargebacks by country:
+```sql chargebacks_by_country_total
+  select 
+      transaction_country
+      ,sum(case when is_chargeback then 1 else 0 end) as total_chargebacks
+  from datamodelingchallenge.transactions
+  group by 1 
+```
+
+<BarChart
+    data={chargebacks_by_country_total}
+    title="Chargebacks by Country"
+    x=transaction_country
+    y=total_chargebacks
 />
 
 ## What's Next?
-- [Connect your data sources](settings)
-- Edit/add markdown files in the `pages` folder
-- Deploy your project with [Evidence Cloud](https://evidence.dev/cloud)
+- With more data, it would be interesting to look at the seasonality of chargebacks 
+- It would also be great to be able to look at chargebacks by payment type, or according to whether a CVV was required 
 
-## Get Support
-- Message us on [Slack](https://slack.evidence.dev/)
-- Read the [Docs](https://docs.evidence.dev/)
-- Open an issue on [Github](https://github.com/evidence-dev/evidence)

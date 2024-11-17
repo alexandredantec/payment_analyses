@@ -1,0 +1,1 @@
+select * from globepay.fct_transactions

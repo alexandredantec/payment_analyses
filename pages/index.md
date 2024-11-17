@@ -13,7 +13,7 @@ title: Q1/Q2 2019 Chargeback Report - Globepay
 - Weekly data offers the most balanced overview to observe variation
 
 - The acceptance rate is calculated by dividing the total number of accepted transactions by the overall number of transactions 
-- SQL code
+- [SQL code](https://github.com/alexandredantec/dbt_payment_data/blob/main/dbt_payment_data/annexes/acceptance_rate.sql)
 
 ```sql acceptance_rate
 with base as (
@@ -40,7 +40,7 @@ order by 1
 
 - The acceptance rate remained somewhat stable, fluctuating between 0.8 and 0.6. It is difficult to identify any sort of seasonality. 
 - The variation by country is also remarkably stable (displayed by month to keep chart organized). 
-- SQL Code
+- [SQL Code](https://github.com/alexandredantec/dbt_payment_data/blob/main/dbt_payment_data/annexes/acceptance_rate_by_country.sql)
 
 ```sql acceptance_rate_by_country
 with base as (
@@ -70,7 +70,7 @@ order by 1
 
 ## Question 2: What are the countries where the amount of declined transactions went over $25M?
 - The chargeback rate is calculated by computing the total amount in USD for transactions where `is_chargeback is true` 
-- SQL code
+- [SQL code](https://github.com/alexandredantec/dbt_payment_data/blob/main/dbt_payment_data/annexes/total_chargebacks.sql)
 
 ```sql chargebacks_by_country_usd
   select 
@@ -94,7 +94,7 @@ order by 1
 
 - The missing chargeback data can be identified by checking transactions where the column `is_chargeback` is null, i.e. it is neither `true` nor `false`
 - In the preliminary exploration, it was already shown that this will not be the case as there is a 1-1 relationship between chargebacks and transactions
-- SQL code
+- [SQL code](https://github.com/alexandredantec/dbt_payment_data/blob/main/dbt_payment_data/annexes/missing_chargeback_total.sql)
 
 ```sql missing_chargebacks
   select 
@@ -109,7 +109,7 @@ order by 1
 
 - As expected, the total is 0 
 - To go further, we can look at the total number of chargebacks
-- SQL Code
+- [SQL Code](https://github.com/alexandredantec/dbt_payment_data/blob/main/dbt_payment_data/annexes/chargebacks.sql)
 
 ```sql total_chargebacks
   select 
@@ -124,7 +124,7 @@ order by 1
 />
 
 - Let's now look at the total number of chargebacks by country
-- SQL Code
+- [SQL Code](https://github.com/alexandredantec/dbt_payment_data/blob/main/dbt_payment_data/annexes/chargebacks_by_country.sql)
 
 ```sql chargebacks_by_country_total
   select 
